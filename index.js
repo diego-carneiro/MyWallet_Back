@@ -1,4 +1,4 @@
-import express from "express";
+import express, { json } from "express";
 import cors from "cors";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
@@ -13,11 +13,29 @@ const mongoClient = new MongoClient(process.env.MONGO_URI);
 let db;
 
 mongoClient.connect().then(() => {
-    db = mongoClient.db("API_MyWallet")
+    db = mongoClient.db("API_MyWallet");
 });
 
-server.post('/', async (request, response) => {
-    const 
+server.post('/sign-up', async (request, response) => {
+    const user = request.body;
+    const userSchema = joi.object({
+        name: joi.string().required(),
+        email: joi.string().email().required(),
+    });
+    const validation = userSchema.validate(user);
+
+    if (validation.error) {
+        return response.sendStatus(422);
+    }
+
+    try {
+        await db.collection("users").insertOne(user);
+        response.sendStatus(201);
+    } catch (error) {
+        response.sendStatus(500);
+    }
+
+
 
 });
 
