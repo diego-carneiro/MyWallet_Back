@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import joi from "joi";
 import { v4 as uuid } from "uuid";
 import bcrypt from "bcrypt";
+import dayjs from "dayjs";
 
 dotenv.config();
 const server = express();
@@ -50,7 +51,7 @@ server.post('/sign-up', async (request, response) => {
 });
 server.post('/sign-in', async (request, response) => {
     const { email, password } = request.body;
-    
+
     const loginSchema = joi.object({
         email: joi.string().email().required(),
         password: joi.string().required(),
@@ -71,10 +72,13 @@ server.post('/sign-in', async (request, response) => {
         }
 
         const isAuthorized = bcrypt.compareSync(password, user.password);
-        console.log(isAuthorized);
+
         if (isAuthorized) {
             const token = uuid();
-            return response.send(token);
+
+            await db.collection("sessions").insertOne({ token, userId: user._id });
+
+            return response.send({ ...user, token: token });
         }
 
         response.sendStatus(401);
@@ -83,7 +87,77 @@ server.post('/sign-in', async (request, response) => {
         response.sendStatus(500);
     }
 });
+server.get('/expense-control', async (request, response) => {
+    const authorization = request.headers.authorization;
+    const token = authorization?.replace('Bearer ', '');
+console.log(authorization);
+    if (!token) {
+        console.log("Token error");
+        return response.sendStatus(401);
+        
+    }
+console.log(token);
+    try {
+        const session = await db.collection("sessions").findOne({ token });
 
+        if (!session) {
+            console.log("Session not found");
+            return response.sendStatus(404); 
+        }
+
+        const savedUser = await db.collection("users").findOne({ _id: session.userId });
+
+        if (savedUser) {
+            const expenses = await db.collection("expenses").find({
+                idUser: (savedUser._id),
+            }).toArray();
+
+            response.send(expenses).status(201);
+
+        } else {
+            response.sendStatus(401);
+            console.log("User not found");
+        }
+
+    } catch (error) {
+        console.log(error);
+        response.sendStatus(500);
+    }
+});
+server.post("/new-expense", async (request, response) => {
+    const { value, description } = request.body;
+    const { authorization } = request.headers;
+    const token = authorization?.replace("Bearer ", "");
+
+    if (!token) return response.sendStatus(401);
+
+    try {
+        const session = await db.collection("sessions").findOne({ token });
+
+        if (!session) return response.sendStatus(401);
+
+        const dbUser = await db.collection("users").findOne({
+            _id: session.userId,
+        });
+
+        if (dbUser) {
+            await db.collection("expenses").insertOne({
+                idUser: dbUser._id,
+                value,
+                description,
+                date: dayjs().locale("pt-br").format("DD/MM"),
+                type: "input",
+            });
+            response.sendStatus(201);
+
+        } else {
+            response.sendStatus(401);
+        }
+    } catch (error) {
+        console.log(error);
+        response.sendStatus(500);
+    }
+});
 server.listen(5000, () => {
-    console.log("Running at http://localhost:5000")
+    console.log("Running at http://localhost:5000");
 });
