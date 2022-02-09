@@ -90,7 +90,7 @@ server.post('/sign-in', async (request, response) => {
 server.get('/expense-control', async (request, response) => {
     const authorization = request.headers.authorization;
     const token = authorization?.replace('Bearer ', '');
-console.log(authorization);
+
     if (!token) {
         console.log("Token error");
         return response.sendStatus(401);
@@ -147,6 +147,40 @@ server.post("/new-expense", async (request, response) => {
                 description,
                 date: dayjs().locale("pt-br").format("DD/MM"),
                 type: "input",
+            });
+            response.sendStatus(201);
+
+        } else {
+            response.sendStatus(401);
+        }
+    } catch (error) {
+        console.log(error);
+        response.sendStatus(500);
+    }
+});
+server.post("/new-deposit", async (request, response) => {
+    const { value, description } = request.body;
+    const { authorization } = request.headers;
+    const token = authorization?.replace("Bearer ", "");
+
+    if (!token) return response.sendStatus(401);
+
+    try {
+        const session = await db.collection("sessions").findOne({ token });
+
+        if (!session) return response.sendStatus(401);
+
+        const dbUser = await db.collection("users").findOne({
+            _id: session.userId,
+        });
+
+        if (dbUser) {
+            await db.collection("expenses").insertOne({
+                idUser: dbUser._id,
+                value,
+                description,
+                date: dayjs().locale("pt-br").format("DD/MM"),
+                type: "output",
             });
             response.sendStatus(201);
 
