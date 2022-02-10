@@ -96,7 +96,7 @@ server.get('/expense-control', async (request, response) => {
         return response.sendStatus(401);
         
     }
-console.log(token);
+
     try {
         const session = await db.collection("sessions").findOne({ token });
 
@@ -146,7 +146,7 @@ server.post("/new-expense", async (request, response) => {
                 value,
                 description,
                 date: dayjs().locale("pt-br").format("DD/MM"),
-                type: "input",
+                type: "output",
             });
             response.sendStatus(201);
 
@@ -180,7 +180,7 @@ server.post("/new-deposit", async (request, response) => {
                 value,
                 description,
                 date: dayjs().locale("pt-br").format("DD/MM"),
-                type: "output",
+                type: "input",
             });
             response.sendStatus(201);
 
