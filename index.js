@@ -192,6 +192,6 @@ server.post("/new-deposit", async (request, response) => {
         response.sendStatus(500);
     }
 });
-server.listen(5000, () => {
-    console.log("Running at http://localhost:5000");
+server.listen(process.env.PORT, () => {
+    console.log("Running at " + process.env.PORT);
 });
