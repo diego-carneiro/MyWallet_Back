@@ -46,6 +46,7 @@ server.post('/sign-up', async (request, response) => {
         response.sendStatus(201);
 
     } catch (error) {
+        console.log(error);
         response.sendStatus(500);
     }
 });
